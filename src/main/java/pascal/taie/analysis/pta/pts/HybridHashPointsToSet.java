@@ -26,13 +26,13 @@ import pascal.taie.analysis.pta.core.cs.element.CSObj;
 import pascal.taie.util.collection.HybridHashSet;
 import pascal.taie.util.collection.SetEx;
 
-class HybridHashPointsToSet extends DelegatePointsToSet {
+public class HybridHashPointsToSet extends DelegatePointsToSet {
 
     HybridHashPointsToSet() {
         this(new HybridHashSet<>());
     }
 
-    private HybridHashPointsToSet(SetEx<CSObj> set) {
+    public HybridHashPointsToSet(SetEx<CSObj> set) {
         super(set);
     }
 

@@ -48,6 +48,7 @@ import pascal.taie.analysis.pta.core.heap.HeapModel;
 import pascal.taie.analysis.pta.core.heap.MockObj;
 import pascal.taie.analysis.pta.core.heap.Obj;
 import pascal.taie.analysis.pta.plugin.Plugin;
+import pascal.taie.analysis.pta.pts.HybridHashPointsToSet;
 import pascal.taie.analysis.pta.pts.PointsToSet;
 import pascal.taie.analysis.pta.pts.PointsToSetFactory;
 import pascal.taie.config.AnalysisOptions;
@@ -80,15 +81,11 @@ import pascal.taie.language.type.ArrayType;
 import pascal.taie.language.type.ClassType;
 import pascal.taie.language.type.Type;
 import pascal.taie.language.type.TypeSystem;
+import pascal.taie.util.collection.ArraySet;
 import pascal.taie.util.collection.Maps;
 import pascal.taie.util.collection.Sets;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.function.Predicate;
 
 import static pascal.taie.language.classes.Signatures.FINALIZE;
@@ -305,20 +302,31 @@ public class DefaultSolver implements Solver {
      * Processes work list entries until the work list is empty.
      */
     private void analyze() {
+        int batch = World.get().getOptions().getBatch();
         while (!workList.isEmpty() && !isTimeout) {
-            Map<Pointer, PointsToSet> smallBatch = Maps.newLinkedHashMap();
+            Map<Pointer, ArraySet<CSObj>> smallBatch = batch != 0 ? Maps.newLinkedHashMap() : null;
             // phase starts
             while (!workList.isEmpty() && !isTimeout) {
                 WorkList.Entry entry = workList.pollEntry();
                 if (entry instanceof WorkList.PointerEntry pEntry) {
                     Pointer p = pEntry.pointer();
                     PointsToSet pts = pEntry.pointsToSet();
-                    if (pts.size() < 3) {
-                        PointsToSet set = smallBatch.get(p);
-                        if (set != null) {
-                            set.addAll(pts);
-                        } else {
-                            smallBatch.put(p, pts.copy());
+                    if (batch != 0) {
+                        if (pts.size() < 2) {
+                            ArraySet<CSObj> set = smallBatch.get(p);
+                            if (set != null) {
+                                set.addAll(pts.getObjects());
+                            } else {
+                                set = new ArraySet<>(new ArrayList<>(pts.getObjects()), false);
+                                set.addAll(pts.getObjects());
+                                smallBatch.put(p, set);
+                            }
+                        } else if (batch == 2 && pts.size() > 8) {
+                            ArraySet<CSObj> set = smallBatch.get(p);
+                            if (set != null) {
+                                set.addAll(pts.getObjects());
+                                smallBatch.remove(p);
+                            }
                         }
                     }
                     PointsToSet diff = propagate(p, pts);
@@ -334,8 +342,11 @@ public class DefaultSolver implements Solver {
                     processCallEdge(eEntry.edge());
                 }
             }
-            for (var entry : smallBatch.entrySet()) {
-                workList.addEntry(entry.getKey(), entry.getValue());
+            if (batch != 0) {
+                for (var entry : smallBatch.entrySet()) {
+//                    System.out.println(entry.getValue().size());
+                    workList.addEntry(entry.getKey(), new HybridHashPointsToSet(entry.getValue()));
+                }
             }
             plugin.onPhaseFinish();
         }

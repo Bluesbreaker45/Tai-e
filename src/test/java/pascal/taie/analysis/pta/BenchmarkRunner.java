@@ -52,6 +52,12 @@ public class BenchmarkRunner {
     @CommandLine.Option(names = "-advanced", defaultValue = "null")
     private String advanced;
 
+    @CommandLine.Option(names = "-outputDir", defaultValue = "output")
+    private String outputDir;
+
+    @CommandLine.Option(names = "-batch", defaultValue = "0")
+    private int batch;
+
     @CommandLine.Parameters
     private List<String> benchmarks;
 
@@ -81,6 +87,8 @@ public class BenchmarkRunner {
                 "-acp", buildClassPath(info.apps()),
                 "-cp", buildClassPath(info.libs()),
                 "-wc",
+                "--output-dir", outputDir,
+                "-batch", Integer.toString(batch),
                 "-m", info.main());
         if (info.allowPhantom()) {
             args.add("--allow-phantom");

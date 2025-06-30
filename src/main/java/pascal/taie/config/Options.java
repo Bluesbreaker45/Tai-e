@@ -234,6 +234,15 @@ public class Options implements Serializable {
     }
 
     @JsonProperty
+    @Option(names = "-batch",
+            defaultValue = "0")
+    private int batch;
+
+    public int getBatch() {
+        return batch;
+    }
+
+    @JsonProperty
     @Option(names = "--no-native-model",
             description = "Enable native model (default: ${DEFAULT-VALUE})",
             defaultValue = "true",

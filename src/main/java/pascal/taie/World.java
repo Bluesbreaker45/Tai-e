@@ -30,6 +30,7 @@ import pascal.taie.language.classes.JMethod;
 import pascal.taie.language.natives.NativeModel;
 import pascal.taie.language.type.TypeSystem;
 import pascal.taie.util.AbstractResultHolder;
+import pascal.taie.util.collection.Pair;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -192,5 +193,11 @@ public final class World extends AbstractResultHolder
             ClassNotFoundException {
         s.defaultReadObject();
         setIRBuilder((IRBuilder) s.readObject());
+    }
+
+    List<Pair<Integer, Integer>> counter = new ArrayList<>();
+
+    public List<Pair<Integer, Integer>> getCounter() {
+        return counter;
     }
 }
