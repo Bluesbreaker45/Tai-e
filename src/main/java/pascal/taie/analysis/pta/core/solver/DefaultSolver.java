@@ -306,12 +306,21 @@ public class DefaultSolver implements Solver {
      */
     private void analyze() {
         while (!workList.isEmpty() && !isTimeout) {
+            Map<Pointer, PointsToSet> smallBatch = Maps.newLinkedHashMap();
             // phase starts
             while (!workList.isEmpty() && !isTimeout) {
                 WorkList.Entry entry = workList.pollEntry();
                 if (entry instanceof WorkList.PointerEntry pEntry) {
                     Pointer p = pEntry.pointer();
                     PointsToSet pts = pEntry.pointsToSet();
+                    if (pts.size() < 3) {
+                        PointsToSet set = smallBatch.get(p);
+                        if (set != null) {
+                            set.addAll(pts);
+                        } else {
+                            smallBatch.put(p, pts.copy());
+                        }
+                    }
                     PointsToSet diff = propagate(p, pts);
                     if (!diff.isEmpty() && p instanceof CSVar v) {
                         processInstanceStore(v, diff);
@@ -324,6 +333,9 @@ public class DefaultSolver implements Solver {
                 } else if (entry instanceof WorkList.CallEdgeEntry eEntry) {
                     processCallEdge(eEntry.edge());
                 }
+            }
+            for (var entry : smallBatch.entrySet()) {
+                workList.addEntry(entry.getKey(), entry.getValue());
             }
             plugin.onPhaseFinish();
         }
